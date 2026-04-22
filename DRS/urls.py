@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from accounts.views import UserViewSets
-from records.views import  DeceasedFuneralHomeViewSet, DeceasedNextOfKinViewSet, DeceasedViewSet, CertifiersViewSet, DeathCertificateViewSet, FuneralHomeViewSet, MedicalInstitutionViewSet, NextOfKinViewSet
+from records.views import BurialDetailsViewSet, DeathCertificateViewSet, DeathRecordViewSet, DeceasedNextOfKinViewSet, DeceasedViewSet, CertifiersViewSet, FuneralHomeViewSet, MedicalInstitutionViewSet, NextOfKinViewSet, DeceasedFuneralHomeViewSet
 
 router = DefaultRouter()
 router.register(r'users', UserViewSets)
@@ -14,6 +14,8 @@ router.register(r'medical-institutions', MedicalInstitutionViewSet)
 router.register(r'funeral-homes', FuneralHomeViewSet)
 router.register(r'deceased-funeral-homes', DeceasedFuneralHomeViewSet)
 router.register(r'deceased-next-of-kin', DeceasedNextOfKinViewSet)
+router.register(r'death-records', DeathRecordViewSet)
+router.register(r'burial-details', BurialDetailsViewSet)
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),

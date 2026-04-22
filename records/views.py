@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework.viewsets import ModelViewSet
-from .models import DeathCertificate, Deceased, Certifiers, DeceasedFuneralHome, FuneralHome, MedicalInstitution, NextOfKin, DeceasedNextOfKin, DeathRecords
-from .serializer import CertifiersSerializer, DeathCertificateSerializer, DeceasedSerializer, NextOfKinSerializer, FuneralHomeSerializer, MedicalInstitutionSerializer, NextOfKinSerializer, DeceasedFuneralHomeSerializer, DeceasedNextOfKinSerializer, DeathRecordSerializer
+from .models import  BurialDetails, Certifiers, DeathCertificate, DeathRecords, Deceased, DeceasedFuneralHome, DeceasedNextOfKin, FuneralHome, MedicalInstitution, NextOfKin
+from .serializer import BurialDetailsSerializer, DeathCertificateSerializer, DeathRecordSerializer, DeceasedFuneralHomeSerializer, DeceasedNextOfKinSerializer, DeceasedSerializer,CertifiersSerializer, FuneralHomeSerializer, MedicalInstitutionSerializer, NextOfKinSerializer
 
 class DeceasedViewSet(ModelViewSet):
     queryset = Deceased.objects.all()
@@ -32,11 +32,22 @@ class DeceasedFuneralHomeViewSet(ModelViewSet):
     serializer_class = DeceasedFuneralHomeSerializer
 
 class DeceasedNextOfKinViewSet(ModelViewSet):
-    queryset = DeceasedNextOfKin.objects.all()
+    queryset = DeceasedNextOfKin.objects.all()   
     serializer_class = DeceasedNextOfKinSerializer
 
+    def get_queryset(self):
+        queryset = DeceasedNextOfKin.objects.all()
+
+        next_of_kin_id = self.request.query_params.get('next_of_kin')
+
+        if next_of_kin_id:
+            queryset = queryset.filter(next_of_kin_id=next_of_kin_id)
+
+        return queryset
 class DeathRecordViewSet(ModelViewSet):
     queryset = DeathRecords.objects.all()
     serializer_class = DeathRecordSerializer
 
-
+class BurialDetailsViewSet(ModelViewSet):
+    queryset = BurialDetails.objects.all()
+    serializer_class = BurialDetailsSerializer

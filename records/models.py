@@ -74,13 +74,13 @@ class Certifiers(models.Model):
         return f"{self.certifier.username} certified the Death of {self.deceased.title_and_name} on {self.date_certified}"
     
 
-class DeathCertificate(models.Model):
+class DeathRecords(models.Model):
     class Status(models.TextChoices):
         PENDING = "PENDING"
         APPROVED = "APPROVED"
         REJECTED = "REJECTED"
 
-    deceased = models.OneToOneField(Deceased, on_delete=models.CASCADE, related_name='death_certificate')
+    deceased = models.OneToOneField(Deceased, on_delete=models.CASCADE, related_name='death_records')
     certifier = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='issued_certificates')
     certificate_number = models.CharField(max_length=50, unique=True, editable=False)
     date_of_death = models.DateField()
@@ -90,26 +90,9 @@ class DeathCertificate(models.Model):
     date_issued = models.DateField(default=date.today)
     status = models.CharField(max_length=20,choices=Status.choices,default=Status.PENDING)
     date_registered = models.DateTimeField(auto_now_add=True)
-
-    def generate_certificate_number(self):
-        timestamp = timezone.now().strftime("%y%m%d%H%M%S")
-        random_digits = str(random.randint(100, 999))
-        return f"{timestamp}{random_digits}"
-
-    def save(self, *args, **kwargs):
-        if not self.certificate_number:
-            self.certificate_number = self.generate_certificate_number()
-
-            # Ensure uniqueness (rare collision safety)
-            while DeathCertificate.objects.filter(
-                certificate_number=self.certificate_number
-            ).exists():
-                self.certificate_number = self.generate_certificate_number()
-
-        super().save(*args, **kwargs)
-
+    
     def __str__(self):
-        return f"Death Certificate No#{self.certificate_number} for {self.deceased.title_and_name}"
+        return f"Death Record for {self.deceased.title_and_name} - Status: {self.status}"
     
 class NextOfKin(models.Model):
     class Relationship(models.TextChoices):
@@ -125,7 +108,7 @@ class NextOfKin(models.Model):
     address = models.CharField(max_length=200, blank=True, null=True)
 
     def __str__(self):
-        return f"{self.full_name} ({self.relationship}) - Next of Kin for {self.deceased.title_and_name}"
+        return f"{self.full_name} ({self.relationship})"
 
 
 class MedicalInstitution(models.Model):
@@ -179,7 +162,10 @@ class FuneralHome(models.Model):
     name = models.CharField(max_length=200)
     location = models.CharField(max_length=300) 
     contact_number = models.CharField(max_length=20)
-    email_address = models.EmailField(unique=True, blank=True, null=True)    
+    email_address = models.EmailField(unique=True, blank=True, null=True)
+
+    def __str__(self):
+        return self.name    
 
 class DeceasedFuneralHome(models.Model):
     deceased = models.ForeignKey('Deceased', on_delete=models.CASCADE)
@@ -195,6 +181,8 @@ class DeceasedFuneralHome(models.Model):
                 name='unique_current_funeral_home_per_deceased'
             )
         ]
+    def __str__(self):
+        return f"{self.deceased.title_and_name} currently in {self.funeral_home.name}"
 
 class DeceasedNextOfKin(models.Model):
     deceased = models.ForeignKey(Deceased, on_delete=models.CASCADE)
@@ -210,45 +198,50 @@ class DeceasedNextOfKin(models.Model):
             name='unique_primary_nok_per_deceased'
             )
         ]
-
-class DeathRecords(models.Model):
-    deceased = models.OneToOneField(Deceased, on_delete=models.CASCADE, related_name='death_record')
-
-    deceased_funeral_home = models.ForeignKey(
-        DeceasedFuneralHome,
-        on_delete=models.SET_NULL,
-        null=True
-    )
-
-    next_of_kin = models.ForeignKey(
-        NextOfKin,
-        on_delete=models.SET_NULL,
-        null=True
-    )
-
-    death_certificate = models.OneToOneField(
-        DeathCertificate,
-        on_delete=models.CASCADE
-    )
-
-    certifier = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True
-    )
-
-    class Status(models.TextChoices):
-        PENDING = "PENDING"
-        APPROVED = "APPROVED"
-        REJECTED = "REJECTED"
-
-    status = models.CharField(
-        max_length=20,
-        choices=Status.choices,
-        default=Status.PENDING
-    )
-
-    timestamp = models.DateTimeField(auto_now_add=True)
+    def __str__(self):       
+        primary_str = "Primary" if self.is_primary else "Secondary"
+        return f"{primary_str} NOK: {self.next_of_kin.full_name} for {self.deceased.title_and_name}"
+        
+class BurialDetails(models.Model):
+    death_record = models.OneToOneField(
+        DeathRecords,
+        on_delete=models.CASCADE,
+        related_name="burial"
+        )
+    burial_date = models.DateField()
+    burial_location = models.CharField(max_length=300)
+    burial_plot_number = models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
-        return f"{self.deceased.full_name} - {self.status}"
+        return f"Burial Details for {self.death_record.deceased.title_and_name} - Burial on {self.burial_date}"
+
+class DeathCertificate(models.Model):
+    death_record = models.OneToOneField(
+        DeathRecords,
+        on_delete=models.CASCADE,
+        related_name="certificate"
+    )
+
+    certificate_number = models.CharField(max_length=50, unique=True)
+    issued_date = models.DateField(auto_now_add=True)
+
+    def generate_certificate_number(self):
+        timestamp = timezone.now().strftime("%y%m%d%H%M%S")
+        random_digits = str(random.randint(100, 999))
+        return f"{timestamp}{random_digits}"
+
+    def save(self, *args, **kwargs):
+        if not self.certificate_number:
+            self.certificate_number = self.generate_certificate_number()
+
+            # Ensure uniqueness (rare collision safety)
+            while DeathCertificate.objects.filter(
+                certificate_number=self.certificate_number
+            ).exists():
+                self.certificate_number = self.generate_certificate_number()
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Death Certificate No#{self.certificate_number} for {self.deceased.title_and_name}"
+    

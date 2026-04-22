@@ -1,6 +1,5 @@
 from rest_framework import serializers
-import rest_framework
-from .models import Certifiers, DeathRecords, Deceased , DeathCertificate, DeceasedFuneralHome, DeceasedNextOfKin, FuneralHome, MedicalInstitution, NextOfKin
+from .models import BurialDetails, Certifiers, DeathCertificate, DeathRecords, Deceased, DeceasedFuneralHome, DeceasedNextOfKin, FuneralHome, MedicalInstitution, NextOfKin
 from datetime import date
 
 class DeceasedSerializer(serializers.ModelSerializer):
@@ -25,20 +24,7 @@ class DeathCertificateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DeathCertificate
-        fields =   fields = [
-            "id",
-            "deceased",
-            "certificate_number",
-            "date_of_death",
-            "other_findings",
-            "place_of_death",
-            "cause_of_death",
-            "date_issued",
-            "status",
-            "date_registered",
-            "month",
-            "year",
-        ]
+        fields =  "__all__"
         read_only_fields = ["certifier", "status", "date_registered", "certificate_number"]
 
     def create(self, validated_data):
@@ -97,6 +83,11 @@ class DeceasedNextOfKinSerializer(serializers.ModelSerializer):
         model = DeceasedNextOfKin
         fields = "__all__"
 
+class BurialDetailsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BurialDetails
+        fields = "__all__"
+
 class DeathRecordSerializer(serializers.ModelSerializer):
     class Meta:
         model = DeathRecords
@@ -104,9 +95,4 @@ class DeathRecordSerializer(serializers.ModelSerializer):
     
         read_only_fields = ["certifier", "status", "date_registered"]
 
-    def create(self, validated_data):
-        month = validated_data.pop("month")
-        year = validated_data.pop("year")
-
-        validated_data["date_of_death"] = date(year, month, 1)
-        return super().create(validated_data)
+   
