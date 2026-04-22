@@ -73,14 +73,13 @@ class Certifiers(models.Model):
     def __str__(self):
         return f"{self.certifier.username} certified the Death of {self.deceased.title_and_name} on {self.date_certified}"
     
-
 class DeathRecords(models.Model):
     class Status(models.TextChoices):
         PENDING = "PENDING"
         APPROVED = "APPROVED"
         REJECTED = "REJECTED"
 
-    deceased = models.OneToOneField(Deceased, on_delete=models.CASCADE, related_name='death_records')
+    deceased = models.OneToOneField(Deceased, on_delete=models.CASCADE, related_name='death_record')
     certifier = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='issued_certificates')
     certificate_number = models.CharField(max_length=50, unique=True, editable=False)
     date_of_death = models.DateField()
@@ -88,9 +87,14 @@ class DeathRecords(models.Model):
     place_of_death = models.CharField(max_length=200)
     cause_of_death = models.CharField(max_length=500)
     date_issued = models.DateField(default=date.today)
-    status = models.CharField(max_length=20,choices=Status.choices,default=Status.PENDING)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     date_registered = models.DateTimeField(auto_now_add=True)
-    
+
+    class Meta:
+        permissions = [
+            ("can_approve_deathrecord", "Can approve death record"),
+        ]
+
     def __str__(self):
         return f"Death Record for {self.deceased.title_and_name} - Status: {self.status}"
     
