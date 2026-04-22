@@ -1,5 +1,6 @@
 from datetime import date,timezone
 import random
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from accounts.models import User
 from django_countries.fields import CountryField
@@ -19,7 +20,6 @@ class Deceased(models.Model):
 
     title = models.CharField(max_length=4, choices=Title.choices)
     gender = models.CharField(max_length=1, choices=Gender.choices)
-
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
 
@@ -118,22 +118,137 @@ class NextOfKin(models.Model):
         PARENT = "Parent", "Parent"
         SIBLING = "Sibling", "Sibling"
         OTHER = "Other", "Other"
-    deceased = models.ForeignKey(Deceased, on_delete=models.CASCADE, related_name='next_of_kin')
     full_name = models.CharField(max_length=200)
     relationship = models.CharField(max_length=100, choices=Relationship.choices)
     contact_number = models.CharField(max_length=20)
-    email = models.EmailField(blank=True, null=True)
+    email = models.EmailField(unique=True, blank=True, null=True)
+    address = models.CharField(max_length=200, blank=True, null=True)
 
     def __str__(self):
         return f"{self.full_name} ({self.relationship}) - Next of Kin for {self.deceased.title_and_name}"
-    
-# class DeathRecords(models.Model):
-#     deceased = models.OneToOneField(Deceased, on_delete=models.CASCADE, related_name='death_record')
-#     death_certificate = models.OneToOneField(DeathCertificate, on_delete=models.CASCADE)   
-#     certifier = models.OneToOneField(User, on_delete=models.CASCADE)
-#     status = models.CharField(max_length=20,choices=DeathCertificate.Status.choices,default=DeathCertificate.Status.PENDING)
-#     timestamp = models.DateTimeField(auto_now_add=True)
-    
-  
-    # def __str__(self):
-    #     return f"{self.deceased.full_name} - {self.status}"
+
+
+class MedicalInstitution(models.Model):
+    class InstitutionType(models.TextChoices):
+        HOSPITAL = "Hospital", "Hospital"
+        CLINIC = "Clinic", "Clinic"
+        PRIVATE_PRACTICE = "Private Practice", "Private Practice"
+        PHARMACY = "Pharmacy", "Pharmacy"
+        OTHER = "Other", "Other"
+
+    certifier = models.ForeignKey(
+        Certifiers,
+        on_delete=models.CASCADE,
+        related_name='institutions'
+    )
+
+    institution_type = models.CharField(
+        max_length=20,
+        choices=InstitutionType.choices
+    )
+
+    other_institution_name = models.CharField(max_length=255, blank=True, null=True)
+
+    name_of_institution = models.CharField(max_length=200)
+    location = models.CharField(max_length=300)
+    postal_box = models.CharField(max_length=50, blank=True, null=True)
+    contact_number = models.CharField(max_length=20)
+    email_address = models.EmailField(unique=True, blank=True, null=True)
+
+    def clean(self):
+        if self.institution_type == "Other" and not self.other_institution_name:
+            raise ValidationError({
+                "other_institution_name": "Specify institution name when type is Other"
+            })
+
+    def display_name(self):
+        return (
+            self.other_institution_name
+            if self.institution_type == "Other"
+            else self.name_of_institution
+        )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.display_name()
+
+class FuneralHome(models.Model):
+    name = models.CharField(max_length=200)
+    location = models.CharField(max_length=300) 
+    contact_number = models.CharField(max_length=20)
+    email_address = models.EmailField(unique=True, blank=True, null=True)    
+
+class DeceasedFuneralHome(models.Model):
+    deceased = models.ForeignKey('Deceased', on_delete=models.CASCADE)
+    funeral_home = models.ForeignKey('FuneralHome', on_delete=models.CASCADE)
+    assigned_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    assigned_date = models.DateTimeField(auto_now_add=True)
+    is_current = models.BooleanField(default=True)
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['deceased'],
+                condition=models.Q(is_current=True),
+                name='unique_current_funeral_home_per_deceased'
+            )
+        ]
+
+class DeceasedNextOfKin(models.Model):
+    deceased = models.ForeignKey(Deceased, on_delete=models.CASCADE)
+    next_of_kin = models.ForeignKey(NextOfKin, on_delete=models.CASCADE)
+
+    relationship = models.CharField(max_length=100, blank=True, null=True)
+    is_primary = models.BooleanField(default=False)
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+            fields=['deceased'],
+            condition=models.Q(is_primary=True),
+            name='unique_primary_nok_per_deceased'
+            )
+        ]
+
+class DeathRecords(models.Model):
+    deceased = models.OneToOneField(Deceased, on_delete=models.CASCADE, related_name='death_record')
+
+    deceased_funeral_home = models.ForeignKey(
+        DeceasedFuneralHome,
+        on_delete=models.SET_NULL,
+        null=True
+    )
+
+    next_of_kin = models.ForeignKey(
+        NextOfKin,
+        on_delete=models.SET_NULL,
+        null=True
+    )
+
+    death_certificate = models.OneToOneField(
+        DeathCertificate,
+        on_delete=models.CASCADE
+    )
+
+    certifier = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True
+    )
+
+    class Status(models.TextChoices):
+        PENDING = "PENDING"
+        APPROVED = "APPROVED"
+        REJECTED = "REJECTED"
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING
+    )
+
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.deceased.full_name} - {self.status}"
