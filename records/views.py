@@ -1,6 +1,7 @@
 from email.mime import text
 import uuid
-
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.shortcuts import render
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.decorators import action
@@ -75,18 +76,21 @@ class DeathRecordViewSet(ModelViewSet):
     def approve(self, request, pk=None):
         record = self.get_object()
 
-        if record.status == "APPROVED":
-            return Response({"message": "Already approved"}, status=status.HTTP_200_OK)
-                
         record.status = "APPROVED"
-        record.is_locked = True
-        record.certifier = request.user
-        import uuid
-
-        record.certificate_number = str(uuid.uuid4())[:10]
         record.save()
 
-        return Response({"message": "Record approved"})
+        # 🔥 SEND REAL-TIME NOTIFICATION
+        channel_layer = get_channel_layer()
+
+        async_to_sync(channel_layer.group_send)(
+            "notifications",
+            {
+                "type": "send_notification",
+                "message": f"{record.deceased.title_and_name} has been approved"
+            }
+        )
+
+        return Response({"message": "Approved"})
 
     @action(detail=True, methods=["post"])
     def reject(self, request, pk=None):
@@ -115,26 +119,39 @@ class DeathRecordViewSet(ModelViewSet):
     @action(detail=True, methods=["get"])
     def certificate(self, request, pk=None):
         record = self.get_object()
-
+        deceased = record.deceased
         response = HttpResponse(content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="death_certificate_{record.id}.pdf"'
+        response['Content-Disposition'] = f'attachment; filename="death_certificate_{record.certificate_number}.pdf"'
 
         c = canvas.Canvas(response)
 
         # Header
-        c.setFont("Helvetica-Bold", 16)
-        c.drawString(150, 800, "OFFICIAL DEATH CERTIFICATE")
+        c.setFont("Helvetica-Bold", 18)
+        c.drawCentredString(300, 800, "OFFICIAL DEATH CERTIFICATE")
 
-        # Body
-        text = c.beginText(100, 750)
+        c.setFont("Helvetica", 12)
+
+        # Start text block
+        text = c.beginText(80, 750)
         text.setFont("Helvetica", 12)
 
-        text.textLine(f"Name: {record.deceased.title_and_name}")
-        text.textLine(f"Date of Birth: {record.deceased.date_of_birth}")
+        # Deceased info
+        text.textLine(f"Full Name: {record.deceased.title_and_name}")
         text.textLine(f"Date of Death: {record.date_of_death}")
         text.textLine(f"Place of Death: {record.place_of_death}")
         text.textLine(f"Cause of Death: {record.cause_of_death}")
-        text.textLine(f"Certificate No: {record.certificate_number}")
+
+        # Extra details
+        if record.other_findings:
+            text.textLine(f"Other Findings: {record.other_findings}")
+
+        text.textLine(f"Certificate Number: {record.certificate_number}")
+        text.textLine(f"Date Issued: {record.date_issued}")
+        text.textLine(f"Date Registered: {record.date_registered}")
+
+        # Certifier
+        certifier_name = record.certifier.full_name if record.certifier else "N/A"
+        text.textLine(f"Certified By: {certifier_name}")
 
         c.drawText(text)
 

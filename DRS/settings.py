@@ -1,5 +1,6 @@
 
 
+from datetime import timedelta
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -22,7 +23,9 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'records',
+    'channels',
     'accounts',
+    'drf_spectacular',
     'rest_framework',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -44,6 +47,19 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'DRS.urls'
 
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema', #FOR API DOCUMENTaTION
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -60,7 +76,13 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'DRS.wsgi.application'
+ASGI_APPLICATION = "DRS.asgi.application"
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer", # FOR REAL-TIME NOTIFICATION IN  DEVELOPMENT ONLY, USE REDIS IN PRODUCTION
+    },
+}
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
