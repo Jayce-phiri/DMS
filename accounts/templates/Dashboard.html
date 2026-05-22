@@ -21,5 +21,20 @@
 <div class="dashboard-container">
     <h1 class="dashboard-header">Dashboard</h1>
     <p class="dashboard-content">Welcome to the dashboard page.</p>
+        <div class="offcanvas offcanvas-start" id="demo">
+            <div class="offcanvas-header">
+                <h1 class="offcanvas-title">Heading</h1>
+                <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
+            </div>
+            <div class="offcanvas-body d-flex flex-column p-10px ">
+                <a href="{% url 'home' %}"><i class="fa fa-home"></i> Home  </a>
+                <a href="{% url 'members' %}"><i class="fa fa-users"></i> Members  </a>
+                <a href="#"><i class="fa fa-cogs"></i> Settings  </a>
+            </div>
+            
+        </div>
+        <button class="btn btn-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#demo">
+             Dashboard Menu
+        </button>
 </div>
 {% endblock %}
