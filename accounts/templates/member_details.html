@@ -1,0 +1,35 @@
+{%extends "Master.html"%}
+
+
+{% block title %}Member details{% endblock %}
+
+{% block content %}
+
+<div class="container mt-4">
+    <div class="card  m-auto" style="width: 30rem;">
+
+        <div class="card-header">
+            <h5 class="mb-0">Member Details</h5>
+        </div>
+
+        <div class="card-body">
+            <p class="card-text text-color-primary"><strong>User ID:</strong> {{ user.id }}</p>
+            <p class="card-text text-color-secondary"><strong>Email:</strong> {{ user.email }}</p>
+            <p class="card-text text-color-success"><strong>Phone Number:</strong> {{ user.phone_number }}</p>
+        </div>
+
+        <div class="card-footer text-muted">
+            <p class="card-text text-color-info"><strong>Date Joined:</strong> {{ user.date_joined }}</p>
+        </div>
+        <li class="nav-item">
+                <a class="nav-link" href="{% url 'members' %}">
+                     <i class="fa fa-users "></i> Back
+                </a>
+            </li>
+            
+    </div>
+</div>
+
+{% endblock %}
+    
+

@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from accounts.views import UserViewSets
+from accounts.views import UserViewSets, members, member_details, home,dashboard
 from records.views import BurialDetailsViewSet, DeathCertificateViewSet, DeathRecordViewSet, DeceasedNextOfKinViewSet, DeceasedViewSet, CertifiersViewSet, FuneralHomeViewSet, MedicalInstitutionViewSet, NextOfKinViewSet, DeceasedFuneralHomeViewSet
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework_simplejwt.views import (
@@ -23,9 +23,17 @@ router.register(r'deceased-funeral-homes', DeceasedFuneralHomeViewSet)
 router.register(r'deceased-next-of-kin', DeceasedNextOfKinViewSet)
 router.register(r'death-records', DeathRecordViewSet)
 router.register(r'burial-details', BurialDetailsViewSet)
+
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
+
+#   HTML URLS
+    path('members/', members, name='members'),
+    path('member-details/<int:id>/', member_details, name='member_details'),
+    path('dashboard/', dashboard, name='dashboard'),
+    path('', home, name='home'),
 
 
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

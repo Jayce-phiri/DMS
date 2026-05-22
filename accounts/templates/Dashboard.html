@@ -1,0 +1,25 @@
+{%extends 'Master.html'%}
+{%load static%}
+{% block title %}Dashboard{% endblock %}
+{% block styles %}
+    <style>
+        .dashboard-container {
+            padding: 20px;
+        }
+        .dashboard-header {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #047b99;
+        }
+        .dashboard-content {
+            font-size: 18px;
+            color: #666;
+        }
+    </style>
+{% endblock %}
+{% block content %}
+<div class="dashboard-container">
+    <h1 class="dashboard-header">Dashboard</h1>
+    <p class="dashboard-content">Welcome to the dashboard page.</p>
+</div>
+{% endblock %}
